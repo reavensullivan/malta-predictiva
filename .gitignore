@@ -1,0 +1,18 @@
+# Información industrial
+*.xlsx
+*.xls
+*.csv
+
+# Modelos y configuraciones derivadas de datos industriales
+*.joblib
+modelos/*.json
+
+# Entorno local
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+venv/
+.env
+
+# Respaldos
+api_respaldo.py

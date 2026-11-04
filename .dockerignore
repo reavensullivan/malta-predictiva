@@ -1,0 +1,12 @@
+.git
+.ipynb_checkpoints
+__pycache__
+*.pyc
+*.ipynb
+*.xlsx
+*.xls
+*.csv
+!modelos/metricas_finales.csv
+.env
+venv
+.venv
