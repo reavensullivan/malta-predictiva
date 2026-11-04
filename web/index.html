@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Malta Predictiva</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f3f5f7;
+    margin: 0;
+    padding: 30px;
+    color: #263238;
+}
+.contenedor {
+    max-width: 850px;
+    margin: auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 3px 15px #00000012;
+}
+h1 { color: #184e45; }
+.descripcion { color: #607d8b; }
+.formulario {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-top: 25px;
+}
+.campo { display: flex; flex-direction: column; }
+label { margin-bottom: 7px; font-weight: bold; }
+input, select {
+    padding: 11px;
+    border: 1px solid #ccd5d9;
+    border-radius: 6px;
+    font-size: 15px;
+}
+button {
+    margin-top: 25px;
+    padding: 13px 24px;
+    background: #184e45;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+button:hover { background: #246b5e; }
+.resultados {
+    margin-top: 30px;
+    display: none;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #e1e6e9;
+    text-align: left;
+}
+th { background: #eaf1ef; }
+.aviso { font-size: 13px; color: #607d8b; }
+@media(max-width:600px) {
+    .formulario { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="contenedor">
+    <h1>Malta Predictiva</h1>
+    <p class="descripcion">
+        Estimación de indicadores de calidad de malta
+        a partir de condiciones operativas del proceso de secado.
+    </p>
+
+    <form id="formulario">
+        <div class="formulario">
+            <div class="campo">
+                <label>Variedad de cebada</label>
+                <select id="variedad" required>
+                    <option>Maximus</option>
+                    <option>Doña Josefa</option>
+                    <option>Voyager</option>
+                    <option>Synergy</option>
+                    <option>ABI Montana</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label>Tamaño del lote</label>
+                <input id="batch_size" type="number" step="any" min="0.001" required>
+            </div>
+            <div class="campo">
+                <label>Tiempo de calentamiento (h)</label>
+                <input id="tiempo_calentamiento" type="number" step="any" min="0" required>
+            </div>
+            <div class="campo">
+                <label>Tiempo de curado (h)</label>
+                <input id="tiempo_curado" type="number" step="any" min="0" required>
+            </div>
+            <div class="campo">
+                <label>Temperatura de inicio (°C)</label>
+                <input id="temp_inicio" type="number" step="any" required>
+            </div>
+            <div class="campo">
+                <label>Temperatura de curado (°C)</label>
+                <input id="temp_curado" type="number" step="any" required>
+            </div>
+            <div class="campo">
+                <label>Temperatura antes del quiebre (°C)</label>
+                <input id="temp_pre_quiebre" type="number" step="any" required>
+            </div>
+        </div>
+        <button type="submit">Predecir calidad</button>
+    </form>
+
+    <div class="resultados" id="resultados">
+        <h2>Indicadores estimados</h2>
+        <table>
+            <thead>
+                <tr><th>Indicador</th><th>Predicción</th></tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+        </table>
+        <p class="aviso">
+            Resultados estimados. No utilizar como único criterio
+            para modificar parámetros de producción.
+        </p>
+    </div>
+    <p id="mensaje" role="status"></p>
+</div>
+
+<script>
+document.getElementById("formulario").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const campos = [
+        "batch_size", "tiempo_calentamiento", "tiempo_curado",
+        "temp_inicio", "temp_curado", "temp_pre_quiebre"
+    ];
+
+    const datos = {
+        variedad: document.getElementById("variedad").value
+    };
+
+    campos.forEach(campo => {
+        datos[campo] = Number(document.getElementById(campo).value);
+    });
+
+    const mensaje = document.getElementById("mensaje");
+    mensaje.textContent = "Calculando predicciones...";
+    document.getElementById("resultados").style.display = "none";
+
+    try {
+        const respuesta = await fetch("/predecir", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(datos)
+        });
+
+        if (!respuesta.ok) {
+            throw new Error("Error HTTP " + respuesta.status);
+        }
+
+        const resultado = await respuesta.json();
+        const tabla = document.getElementById("tabla");
+        tabla.innerHTML = "";
+
+        Object.entries(resultado.predicciones).forEach(([nombre, valor]) => {
+            const fila = document.createElement("tr");
+            const celdaNombre = document.createElement("td");
+            const celdaValor = document.createElement("td");
+            celdaNombre.textContent = nombre.replaceAll("_", " ");
+            celdaValor.textContent = Number(valor).toFixed(4);
+            fila.append(celdaNombre, celdaValor);
+            tabla.appendChild(fila);
+        });
+
+        document.getElementById("resultados").style.display = "block";
+        mensaje.textContent = "Predicción completada.";
+
+    } catch (error) {
+        mensaje.textContent = "No fue posible obtener la predicción: " + error.message;
+    }
+});
+</script>
+</body>
+</html>
